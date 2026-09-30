@@ -1,0 +1,28 @@
+# Web framework
+fastapi
+uvicorn[standard]
+
+# Async HTTP
+aiohttp
+curl-cffi
+brotli
+
+# Telegram bot
+aiogram
+
+# FastAPI utilities
+pydantic
+python-dotenv
+python-multipart
+
+# PDF and AI
+PyMuPDF
+google-generativeai
+
+# Data & Exchange APIs
+pandas
+smartapi-python
+pytz
+pyotp
+logzero
+websocket-client
