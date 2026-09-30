@@ -1,0 +1,36 @@
+# ── Python ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# ── Virtual Environments ───────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ── Environment / Secrets ──────────────────────────────────
+.env
+
+# ── IDE / Editor ───────────────────────────────────────────
+.vscode/
+.idea/
+*.code-workspace
+
+# ── Logs ──────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Runtime-generated Service Data (large, changes daily) ──
+services/nse_service.json
+services/bse_service.json
+services/ipo_service.json
+services/listing_service.json
+
+# ── FileLock temp files ────────────────────────────────────
+services/*.lock
+
+# ── OS ────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
