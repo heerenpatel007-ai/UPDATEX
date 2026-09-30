@@ -219,4 +219,139 @@ document.querySelectorAll('.main-tab').forEach(tab => {
 document.addEventListener('DOMContentLoaded', () => {
     loadFeed();
     connectWS();
+    loadScriptsList();
 });
+
+// ── Script Analysis Logic ───────────────────────────────────────────────────
+let availableScripts = [];
+const searchInput = document.getElementById('script-search');
+const autocompleteList = document.getElementById('autocomplete-list');
+const analysisResults = document.getElementById('analysis-results');
+const analysisLoading = document.getElementById('analysis-loading');
+
+async function loadScriptsList() {
+    try {
+        const res = await fetch(`${API_BASE}/api/scripts`);
+        const data = await res.json();
+        if (data.scripts) {
+            availableScripts = data.scripts;
+        }
+    } catch (e) {
+        console.error("Failed to load scripts list", e);
+    }
+}
+
+// Autocomplete Input Handler
+if (searchInput) {
+    searchInput.addEventListener('input', function() {
+        const val = this.value;
+        autocompleteList.innerHTML = '';
+        if (!val) {
+            autocompleteList.style.display = 'none';
+            return;
+        }
+        
+        const matches = availableScripts.filter(s => s.toLowerCase().includes(val.toLowerCase())).slice(0, 50);
+        
+        if (matches.length > 0) {
+            autocompleteList.style.display = 'block';
+            matches.forEach(match => {
+                const item = document.createElement('div');
+                // Highlight matching part
+                const regex = new RegExp(`(${val})`, "gi");
+                item.innerHTML = match.replace(regex, "<strong>$1</strong>");
+                
+                item.addEventListener('click', () => {
+                    searchInput.value = match;
+                    autocompleteList.innerHTML = '';
+                    autocompleteList.style.display = 'none';
+                    fetchAnalysis(match);
+                });
+                autocompleteList.appendChild(item);
+            });
+        } else {
+            autocompleteList.style.display = 'none';
+        }
+    });
+
+    // Close autocomplete when clicking outside
+    document.addEventListener('click', (e) => {
+        if (e.target !== searchInput) {
+            autocompleteList.innerHTML = '';
+            autocompleteList.style.display = 'none';
+        }
+    });
+}
+
+async function fetchAnalysis(symbol) {
+    analysisResults.style.display = 'none';
+    analysisLoading.style.display = 'block';
+    
+    try {
+        const res = await fetch(`${API_BASE}/api/analyze/${symbol}`);
+        const data = await res.json();
+        
+        analysisLoading.style.display = 'none';
+        
+        if (data.status === 'success') {
+            document.getElementById('script-name').innerText = data.symbol;
+            document.getElementById('script-ltp').innerText = data.ltp ? `₹${parseFloat(data.ltp).toFixed(2)}` : 'N/A';
+            
+            // Populate Analysis Dashboard
+            if (data.analysis) {
+                document.getElementById('trend-val').innerText = data.analysis.trend || '--';
+                
+                // Color code the trend text
+                const trendText = data.analysis.trend || '';
+                if (trendText.includes('Bullish')) document.getElementById('trend-val').style.color = 'var(--success)';
+                else if (trendText.includes('Bearish')) document.getElementById('trend-val').style.color = '#ef4444';
+                else document.getElementById('trend-val').style.color = 'var(--text-primary)';
+                
+                document.getElementById('sma50-val').innerText = data.analysis.sma_50 ? `₹${data.analysis.sma_50}` : '--';
+                document.getElementById('sma200-val').innerText = data.analysis.sma_200 ? `₹${data.analysis.sma_200}` : '--';
+                document.getElementById('res-val').innerText = data.analysis.resistance ? `₹${data.analysis.resistance}` : '--';
+                document.getElementById('sup-val').innerText = data.analysis.support ? `₹${data.analysis.support}` : '--';
+            }
+            
+            const tbody = document.getElementById('historical-body');
+            tbody.innerHTML = '';
+            
+            if (data.historical && data.historical.length > 0) {
+                // Reverse to show newest first
+                const recent = [...data.historical].reverse();
+                
+                recent.forEach((day, index) => {
+                    const row = document.createElement('tr');
+                    
+                    // Determine if it was an up or down day for coloring the close price
+                    let colorClass = '';
+                    if (index < recent.length - 1) {
+                        const prevClose = recent[index+1].Close;
+                        if (day.Close > prevClose) colorClass = 'up-day';
+                        else if (day.Close < prevClose) colorClass = 'down-day';
+                    }
+                    
+                    row.innerHTML = `
+                        <td>${day.Date}</td>
+                        <td>${parseFloat(day.Open).toFixed(2)}</td>
+                        <td>${parseFloat(day.High).toFixed(2)}</td>
+                        <td>${parseFloat(day.Low).toFixed(2)}</td>
+                        <td class="${colorClass}">${parseFloat(day.Close).toFixed(2)}</td>
+                        <td>${day.Volume.toLocaleString()}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-secondary);">No historical data available.</td></tr>';
+            }
+            
+            analysisResults.style.display = 'flex';
+        } else {
+            alert('Could not fetch data for this script: ' + data.message);
+        }
+    } catch (e) {
+        analysisLoading.style.display = 'none';
+        console.error("Analysis fetch failed", e);
+        alert('Failed to connect to the server.');
+    }
+}

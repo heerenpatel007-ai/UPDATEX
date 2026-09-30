@@ -18,6 +18,7 @@ import aiohttp
 from pydantic import BaseModel
 from typing import List
 import pytz
+import yfinance as yf
 
 load_dotenv()
 
@@ -143,7 +144,96 @@ async def get_feed():
             except: pass
     return result
 
+@app.get("/api/scripts")
+async def get_scripts():
+    if not angel_service.token_map:
+        return {"status": "loading", "message": "Scripts are still loading...", "scripts": []}
+    
+    # Extract unique symbols from the token map
+    # Some keys are numeric tokens or lowercase, we want uppercase alphabetic symbols mostly.
+    scripts = sorted([k for k in angel_service.token_map.keys() if isinstance(k, str) and not k.isdigit()])
+    return {"status": "success", "scripts": scripts}
 
+@app.get("/api/analyze/{symbol}")
+async def analyze_script(symbol: str):
+    try:
+        def fetch_yf():
+            # Append .NS to search on NSE via Yahoo Finance
+            ticker = yf.Ticker(f"{symbol.upper()}.NS")
+            hist_df = ticker.history(period="3y")
+            return hist_df
+
+        # Run the synchronous yfinance call in a thread
+        hist_df = await asyncio.to_thread(fetch_yf)
+        
+        historical_data = []
+        ltp = None
+        analysis = {}
+        
+        if not hist_df.empty:
+            import pandas as pd
+            # Current/last close price is our LTP
+            ltp = float(hist_df.iloc[-1]['Close'])
+            
+            # --- 3-Year Data Analysis ---
+            # 52 Week High/Low (approx 252 trading days)
+            last_year_df = hist_df.tail(252)
+            high_52w = float(last_year_df['High'].max())
+            low_52w = float(last_year_df['Low'].min())
+            
+            # Moving Averages
+            sma_50 = float(hist_df['Close'].rolling(window=50).mean().iloc[-1]) if len(hist_df) >= 50 else ltp
+            sma_200 = float(hist_df['Close'].rolling(window=200).mean().iloc[-1]) if len(hist_df) >= 200 else ltp
+            
+            # Trend Analysis
+            trend = "Neutral"
+            if ltp > sma_200 and sma_50 > sma_200:
+                trend = "Bullish 🟢"
+            elif ltp < sma_200 and sma_50 < sma_200:
+                trend = "Bearish 🔴"
+            elif ltp > sma_50:
+                trend = "Short-term Bullish ↗️"
+            else:
+                trend = "Short-term Bearish ↘️"
+                
+            # Basic Support/Resistance (Fibonacci approximate)
+            diff = high_52w - low_52w
+            resistance = high_52w - (diff * 0.236)
+            support = low_52w + (diff * 0.236)
+            
+            analysis = {
+                "trend": trend,
+                "sma_50": round(sma_50, 2),
+                "sma_200": round(sma_200, 2),
+                "high_52w": round(high_52w, 2),
+                "low_52w": round(low_52w, 2),
+                "support": round(support, 2),
+                "resistance": round(resistance, 2)
+            }
+            # ----------------------------
+            
+            # For the table, we only want to send the last 30 days
+            table_df = hist_df.tail(30).copy()
+            
+            # Move Date from index to column
+            table_df = table_df.reset_index()
+            
+            # Format date as YYYY-MM-DD
+            table_df['Date'] = table_df['Date'].dt.strftime('%Y-%m-%d')
+            
+            # Extract only the needed columns to avoid JSON errors
+            table_df = table_df[['Date', 'Open', 'High', 'Low', 'Close', 'Volume']]
+            historical_data = table_df.to_dict(orient='records')
+            
+        return {
+            "status": "success",
+            "symbol": symbol.upper(),
+            "ltp": ltp,
+            "analysis": analysis,
+            "historical": historical_data
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 

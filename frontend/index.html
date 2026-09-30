@@ -352,6 +352,120 @@
         .listing-pane.active {
             display: flex;
         }
+
+        /* --- Analysis Tab Styles --- */
+        .search-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-wrapper input {
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            outline: none;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+        .search-wrapper input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .autocomplete-items {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 99;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: none;
+            margin-top: 4px;
+        }
+        .autocomplete-items div {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.95rem;
+        }
+        .autocomplete-items div:hover, .autocomplete-active {
+            background-color: var(--card-hover);
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+        .analysis-results {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow: hidden;
+            flex: 1;
+        }
+        .script-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .script-header h2 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: var(--accent-blue);
+        }
+        .ltp-box {
+            text-align: right;
+        }
+        .ltp-label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .ltp-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .table-container {
+            overflow-x: auto;
+            flex: 1;
+            overflow-y: auto;
+        }
+        .historical-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        .historical-table th, .historical-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .historical-table th {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            background: rgba(0,0,0,0.02);
+            position: sticky;
+            top: 0;
+        }
+        .historical-table td {
+            font-size: 0.95rem;
+        }
+        .up-day { color: var(--success); }
+        .down-day { color: #ef4444; }
     </style>
 </head>
 
@@ -404,9 +518,64 @@
                 </div>
 
                 <div id="tab-check-script" class="main-tab-pane">
-                    <div style="padding: 20px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); color: var(--text-primary); height: 100%;">
-                        <h3>Check Script</h3>
-                        <p style="color: var(--text-secondary); margin-top: 10px;">Details coming soon...</p>
+                    <div style="display: flex; flex-direction: column; height: 100%;">
+                        <div class="search-wrapper">
+                            <input type="text" id="script-search" placeholder="Type a script name (e.g. RELIANCE, TCS) ..." autocomplete="off">
+                            <div id="autocomplete-list" class="autocomplete-items"></div>
+                        </div>
+                        
+                        <div id="analysis-loading" style="display: none; padding: 40px; text-align: center; color: var(--text-secondary);">
+                            <div class="pulse" style="display: inline-block; margin-bottom: 10px;"></div>
+                            <p>Loading analysis...</p>
+                        </div>
+
+                        <div id="analysis-results" class="analysis-results" style="display: none;">
+                            <div class="script-header">
+                                <h2 id="script-name">--</h2>
+                                <div class="ltp-box">
+                                    <span class="ltp-label">LTP</span>
+                                    <span id="script-ltp" class="ltp-value">--</span>
+                                </div>
+                            </div>
+                            
+                            <div id="analysis-dashboard" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+                                <div style="background: rgba(37, 99, 235, 0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(37, 99, 235, 0.1);">
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Overall Trend</div>
+                                    <div id="trend-val" style="font-size: 1.1rem; font-weight: 700; margin-top: 5px; color: var(--text-primary);">--</div>
+                                </div>
+                                <div style="background: rgba(37, 99, 235, 0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(37, 99, 235, 0.1);">
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Moving Averages</div>
+                                    <div style="font-size: 0.9rem; font-weight: 600; margin-top: 5px;">50 SMA: <span id="sma50-val">--</span></div>
+                                    <div style="font-size: 0.9rem; font-weight: 600; margin-top: 2px;">200 SMA: <span id="sma200-val">--</span></div>
+                                </div>
+                                <div style="background: rgba(37, 99, 235, 0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(37, 99, 235, 0.1);">
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Key Levels (52W)</div>
+                                    <div style="font-size: 0.9rem; font-weight: 600; margin-top: 5px; color: var(--success);">Resistance: <span id="res-val">--</span></div>
+                                    <div style="font-size: 0.9rem; font-weight: 600; margin-top: 2px; color: #ef4444;">Support: <span id="sup-val">--</span></div>
+                                </div>
+                            </div>
+                            
+                            <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                                <h3 style="font-size: 1rem; color: var(--text-secondary); margin-bottom: 12px;">Last 30 Days (Daily)</h3>
+                                <div class="table-container">
+                                    <table class="historical-table" id="historical-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Open</th>
+                                                <th>High</th>
+                                                <th>Low</th>
+                                                <th>Close</th>
+                                                <th>Volume</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="historical-body">
+                                            <!-- Data injected here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
