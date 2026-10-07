@@ -210,6 +210,45 @@ async def analyze_script(symbol: str):
                 "support": round(support, 2),
                 "resistance": round(resistance, 2)
             }
+            
+            # --- Instant Momentum Factors ---
+            try:
+                # RSI (14-period)
+                delta = hist_df['Close'].diff()
+                gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+                loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+                rs = gain / loss
+                rsi = 100 - (100 / (1 + rs))
+                analysis["rsi"] = round(float(rsi.iloc[-1]), 2) if not rsi.isna().all() else 50.0
+                
+                # Volume Spike
+                vol_10d_avg = float(hist_df['Volume'].tail(11).head(10).mean())
+                current_vol = float(hist_df['Volume'].iloc[-1])
+                analysis["vol_spike"] = round(current_vol / vol_10d_avg, 2) if vol_10d_avg > 0 else 1.0
+                
+                # MACD
+                ema_12 = hist_df['Close'].ewm(span=12, adjust=False).mean()
+                ema_26 = hist_df['Close'].ewm(span=26, adjust=False).mean()
+                macd_line = ema_12 - ema_26
+                signal_line = macd_line.ewm(span=9, adjust=False).mean()
+                macd_hist = float(macd_line.iloc[-1] - signal_line.iloc[-1])
+                if macd_hist > 0 and macd_hist > float(macd_line.iloc[-2] - signal_line.iloc[-2]):
+                    analysis["macd_status"] = "Bullish Crossover 🚀"
+                elif macd_hist < 0:
+                    analysis["macd_status"] = "Bearish 🔻"
+                else:
+                    analysis["macd_status"] = "Neutral"
+                    
+                # % Change Today
+                prev_close = float(hist_df['Close'].iloc[-2]) if len(hist_df) > 1 else ltp
+                analysis["pct_change"] = round(((ltp - prev_close) / prev_close) * 100, 2)
+                
+                # Distance from High
+                today_high = float(hist_df['High'].iloc[-1])
+                analysis["dist_from_high"] = round(((today_high - ltp) / ltp) * 100, 2)
+            except Exception as e:
+                print(f"Momentum calculation error: {e}")
+                pass
             # ----------------------------
             
             # For the table, we only want to send the last 30 days

@@ -361,6 +361,38 @@ async function fetchAnalysis(symbol) {
                 document.getElementById('sma200-val').innerText = data.analysis.sma_200 ? `₹${data.analysis.sma_200}` : '--';
                 document.getElementById('res-val').innerText = data.analysis.resistance ? `₹${data.analysis.resistance}` : '--';
                 document.getElementById('sup-val').innerText = data.analysis.support ? `₹${data.analysis.support}` : '--';
+                
+                // Populate Momentum Factors
+                if (data.analysis.rsi !== undefined) {
+                    const rsi = data.analysis.rsi;
+                    let rsiColor = 'var(--text-primary)';
+                    if (rsi > 70) rsiColor = '#ef4444'; // Overbought
+                    else if (rsi < 30) rsiColor = 'var(--success)'; // Oversold
+                    document.getElementById('rsi-val').innerHTML = `<span style="color:${rsiColor}">${rsi}</span>`;
+                }
+                
+                if (data.analysis.vol_spike !== undefined) {
+                    const spike = data.analysis.vol_spike;
+                    let spikeColor = spike > 2.0 ? 'var(--success)' : 'var(--text-primary)';
+                    document.getElementById('vol-spike-val').innerHTML = `<span style="color:${spikeColor}">${spike}x</span>`;
+                }
+                
+                if (data.analysis.macd_status) {
+                    const macd = data.analysis.macd_status;
+                    let macdColor = macd.includes('Bullish') ? 'var(--success)' : (macd.includes('Bearish') ? '#ef4444' : 'var(--text-primary)');
+                    document.getElementById('macd-val').innerHTML = `<span style="color:${macdColor}">${macd}</span>`;
+                }
+                
+                if (data.analysis.pct_change !== undefined) {
+                    const pct = data.analysis.pct_change;
+                    let pctColor = pct > 0 ? 'var(--success)' : (pct < 0 ? '#ef4444' : 'var(--text-primary)');
+                    const sign = pct > 0 ? '+' : '';
+                    document.getElementById('pct-change-val').innerHTML = `<span style="color:${pctColor}">${sign}${pct}%</span>`;
+                }
+                
+                if (data.analysis.dist_from_high !== undefined) {
+                    document.getElementById('dist-high-val').innerText = `${data.analysis.dist_from_high}% down`;
+                }
             }
             
             const tbody = document.getElementById('historical-body');
