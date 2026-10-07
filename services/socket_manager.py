@@ -40,13 +40,21 @@ class SocketManager:
         self._initialize_history()
 
     def _initialize_history(self):
-        for filename, id_key in [("nse_service.json", "attchmntFile"), ("bse_service.json", "NEWSID")]:
+        for filename, id_key, time_key in [("nse_service.json", "attchmntFile", "an_dt"), ("bse_service.json", "NEWSID", "NEWS_DT")]:
+            source = "NSE" if "nse" in filename else "BSE"
             path = os.path.join(BASE_DIR, filename)
             if os.path.exists(path):
                 try:
                     with open(path, "r", encoding="utf-8") as f:
                         for item in json.load(f):
-                            if item.get(id_key): self.pushed_ids.add(item[id_key])
+                            primary_id = item.get(id_key)
+                            if primary_id:
+                                uid = f"{source}_{primary_id}"
+                            else:
+                                from services.utils import generate_uid
+                                headline = item.get("desc") or item.get("HEADLINE") or item.get("headline") or ""
+                                uid = generate_uid(source, item.get("symbol") or "", headline, item.get(time_key) or "")
+                            self.pushed_ids.add(uid)
                 except: pass
 
     async def connect(self, websocket):
