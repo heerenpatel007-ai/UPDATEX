@@ -363,6 +363,13 @@ async function fetchAnalysis(symbol) {
                 document.getElementById('sup-val').innerText = data.analysis.support ? `₹${data.analysis.support}` : '--';
                 
                 // Populate Momentum Factors
+                if (data.analysis.vwap !== undefined) {
+                    const vwap = data.analysis.vwap;
+                    const ltp = data.ltp || 0;
+                    let vwapColor = ltp > vwap ? 'var(--success)' : '#ef4444'; // Green if holding above VWAP
+                    document.getElementById('vwap-val').innerHTML = `<span style="color:${vwapColor}">₹${vwap.toFixed(2)}</span>`;
+                }
+                
                 if (data.analysis.rsi !== undefined) {
                     const rsi = data.analysis.rsi;
                     let rsiColor = 'var(--text-primary)';

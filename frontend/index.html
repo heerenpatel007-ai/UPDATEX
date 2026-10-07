@@ -557,23 +557,27 @@
                             
                             <!-- Momentum Factors Grid -->
                             <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin-top: 10px; margin-bottom: -5px;">⚡ Instant Momentum Signals</div>
-                            <div id="momentum-dashboard" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
+                            <div id="momentum-dashboard" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 20px;">
                                 <div style="background: rgba(168, 85, 247, 0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.1);">
-                                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">14-Day RSI</div>
-                                    <div id="rsi-val" style="font-size: 1.1rem; font-weight: 700; margin-top: 5px; color: var(--text-primary);">--</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">VWAP (Intraday)</div>
+                                    <div id="vwap-val" style="font-size: 1.1rem; font-weight: 700; margin-top: 5px; color: var(--text-primary);">--</div>
                                 </div>
                                 <div style="background: rgba(168, 85, 247, 0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.1);">
                                     <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Volume Spike (vs 10d)</div>
                                     <div id="vol-spike-val" style="font-size: 1.1rem; font-weight: 700; margin-top: 5px; color: var(--text-primary);">--</div>
                                 </div>
                                 <div style="background: rgba(168, 85, 247, 0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.1);">
-                                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">MACD Status</div>
-                                    <div id="macd-val" style="font-size: 1.1rem; font-weight: 700; margin-top: 5px; color: var(--text-primary);">--</div>
-                                </div>
-                                <div style="background: rgba(168, 85, 247, 0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.1);">
                                     <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Today's Action</div>
                                     <div style="font-size: 0.9rem; font-weight: 600; margin-top: 5px;">Change: <span id="pct-change-val">--</span></div>
                                     <div style="font-size: 0.9rem; font-weight: 600; margin-top: 2px;">From High: <span id="dist-high-val">--</span></div>
+                                </div>
+                                <div style="background: rgba(168, 85, 247, 0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.1);">
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">3-Period RSI</div>
+                                    <div id="rsi-val" style="font-size: 1.1rem; font-weight: 700; margin-top: 5px; color: var(--text-primary);">--</div>
+                                </div>
+                                <div style="background: rgba(168, 85, 247, 0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.1);">
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">MACD Status</div>
+                                    <div id="macd-val" style="font-size: 1.1rem; font-weight: 700; margin-top: 5px; color: var(--text-primary);">--</div>
                                 </div>
                             </div>
                             

@@ -161,10 +161,11 @@ async def analyze_script(symbol: str):
             # Append .NS to search on NSE via Yahoo Finance
             ticker = yf.Ticker(f"{symbol.upper()}.NS")
             hist_df = ticker.history(period="3y")
-            return hist_df
+            intra_df = ticker.history(period="1d", interval="1m")
+            return hist_df, intra_df
 
         # Run the synchronous yfinance call in a thread
-        hist_df = await asyncio.to_thread(fetch_yf)
+        hist_df, intra_df = await asyncio.to_thread(fetch_yf)
         
         historical_data = []
         ltp = None
@@ -213,10 +214,10 @@ async def analyze_script(symbol: str):
             
             # --- Instant Momentum Factors ---
             try:
-                # RSI (14-period)
+                # RSI (3-period for hyper-momentum)
                 delta = hist_df['Close'].diff()
-                gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-                loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+                gain = (delta.where(delta > 0, 0)).rolling(window=3).mean()
+                loss = (-delta.where(delta < 0, 0)).rolling(window=3).mean()
                 rs = gain / loss
                 rsi = 100 - (100 / (1 + rs))
                 analysis["rsi"] = round(float(rsi.iloc[-1]), 2) if not rsi.isna().all() else 50.0
@@ -225,6 +226,16 @@ async def analyze_script(symbol: str):
                 vol_10d_avg = float(hist_df['Volume'].tail(11).head(10).mean())
                 current_vol = float(hist_df['Volume'].iloc[-1])
                 analysis["vol_spike"] = round(current_vol / vol_10d_avg, 2) if vol_10d_avg > 0 else 1.0
+                
+                # VWAP Calculation (using 1m intraday data)
+                vwap_val = ltp
+                if not intra_df.empty:
+                    intra_df['Typical_Price'] = (intra_df['High'] + intra_df['Low'] + intra_df['Close']) / 3
+                    cum_vol_price = (intra_df['Typical_Price'] * intra_df['Volume']).cumsum()
+                    cum_vol = intra_df['Volume'].cumsum()
+                    vwap = cum_vol_price / cum_vol
+                    vwap_val = float(vwap.iloc[-1])
+                analysis["vwap"] = round(vwap_val, 2)
                 
                 # MACD
                 ema_12 = hist_df['Close'].ewm(span=12, adjust=False).mean()
