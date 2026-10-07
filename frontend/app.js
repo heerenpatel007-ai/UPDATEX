@@ -88,7 +88,13 @@ function createCard(item) {
             <div class="card-category">${item.category}</div>
             <div class="card-body" style="color: var(--text-secondary); margin-top: 4px;">${item.headline}</div>
             ${isLong ? `<button class="read-more-btn" style="display:block;">Read More</button>` : ''}
-            <div style="margin-top:auto; padding-top:12px; display: flex; justify-content: flex-end;">${pdfBtn}</div>
+            <div style="margin-top:auto; padding-top:12px; display: flex; justify-content: space-between; align-items: center;">
+                <button class="analyze-btn" data-symbol="${item.symbol}" style="background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37,99,235,0.2); color: var(--accent-blue); font-weight: 600; cursor: pointer; font-size: 0.75rem; padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 5px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    Check Script
+                </button>
+                ${pdfBtn}
+            </div>
         </div>
     `;
     return html;
@@ -101,6 +107,34 @@ document.addEventListener('click', (e) => {
         const body = btn.previousElementSibling;
         const isExpanded = body.classList.toggle('expanded');
         btn.innerText = isExpanded ? 'Show Less' : 'Read More';
+    }
+});
+
+// ── Event Delegation for "Check Script" button ──────────────────────────────
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.analyze-btn');
+    if (btn) {
+        const symbol = btn.getAttribute('data-symbol');
+        if (!symbol || symbol === '-' || symbol === 'NSE' || symbol === 'BSE') {
+            alert('No valid script symbol found for this announcement.');
+            return;
+        }
+        
+        // 1. Switch to the Check Script tab
+        const checkTab = document.querySelector('.main-tab[data-target="check-script"]');
+        if (checkTab) checkTab.click();
+        
+        // 2. Set the search input value
+        const searchInput = document.getElementById('script-search');
+        if (searchInput) searchInput.value = symbol;
+        
+        // 3. Trigger the analysis fetch
+        if (typeof fetchAnalysis === 'function') {
+            fetchAnalysis(symbol);
+        }
+        
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 });
 
