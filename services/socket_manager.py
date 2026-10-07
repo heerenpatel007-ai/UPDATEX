@@ -29,7 +29,7 @@ async def send_telegram(bot_token, chat_id, message):
     payload = {"chat_id": chat_id, "text": message, "parse_mode": "HTML", "disable_web_page_preview": True}
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.post(url, json=payload, timeout=10) as resp: return await resp.json()
+            async with session.post(url, json=payload, timeout=10, ssl=False) as resp: return await resp.json()
         except: pass
 
 class SocketManager:
@@ -76,9 +76,7 @@ class SocketManager:
                 # 1. Gather all new items from all sources
                 sources = {
                     "NSE": (os.path.join(BASE_DIR, "nse_service.json"), "attchmntFile", "an_dt"),
-                    "BSE": (os.path.join(BASE_DIR, "bse_service.json"), "NEWSID", "NEWS_DT"),
-                    "IPO": (os.path.join(BASE_DIR, "ipo_service.json"), "symbol", "issueStartDate"),
-                    "Listing": (os.path.join(BASE_DIR, "listing_service.json"), "symbol", "listingDate")
+                    "BSE": (os.path.join(BASE_DIR, "bse_service.json"), "NEWSID", "NEWS_DT")
                 }
 
                 for source, (path, id_key, time_key) in sources.items():
@@ -89,19 +87,7 @@ class SocketManager:
                         except:
                             continue
                         items = []
-                        if source == "IPO":
-                            if isinstance(raw, dict):
-                                for cat in ["current", "upcoming"]:
-                                    for item in raw.get(cat, []):
-                                        item["_ipo_type"] = cat
-                                        items.append(item)
-                        elif source == "Listing":
-                            if isinstance(raw, dict):
-                                for cat in ["spos", "new_listing", "forthcoming", "recent"]: items.extend(raw.get(cat, []))
-                            else:
-                                items = raw if isinstance(raw, list) else []
-                        else:
-                            items = raw if isinstance(raw, list) else []
+                        items = raw if isinstance(raw, list) else []
 
                         for item in items:
                             # Use primary ID if available, otherwise fallback to robust fingerprint
@@ -154,16 +140,26 @@ class SocketManager:
             await asyncio.sleep(2)
 
     def _build_telegram_msg(self, item, source):
+        def to_12_hour(t_str):
+            try:
+                # Expecting HH:MM:SS format
+                t = datetime.strptime(t_str, "%H:%M:%S")
+                return t.strftime("%I:%M:%S %p")
+            except:
+                return t_str
+
         if source == "NSE":
             symbol, name = item.get("symbol", "-"), item.get("sm_name", "-")
             an_dt = str(item.get("an_dt", "-"))
             time_str = an_dt.split(" ")[-1] if " " in an_dt else an_dt
+            time_str = to_12_hour(time_str)
             pdf_html = f'\n📄 <a href="{item.get("pdf_link", "")}">View PDF</a>' if item.get("pdf_link") else ""
             return f"🏢 <b>NSE | {name}</b> ({symbol})\n📋 {item.get('desc', '-')}\n🕒 {time_str}\n📊 {item.get('market_type', '-')}{pdf_html}"
         else:
             symbol, name = item.get("SCRIP_NAME") or str(item.get("SCRIP_CD", "-")), item.get("SLONGNAME", "-")
             dt_str = str(item.get("NEWS_DT", "-"))
             time_str = dt_str.split("T")[1].split(".")[0] if "T" in dt_str else dt_str
+            time_str = to_12_hour(time_str)
             category = item.get("SUBCATNAME") or item.get("CATEGORYNAME") or "-"
             pdf_html = f'\n📄 <a href="{item.get("pdf_link", "")}">View PDF</a>' if item.get("pdf_link") else ""
             return f"🏢 <b>BSE | {name}</b> ({symbol})\n📋 {item.get('HEADLINE', '-')}\n🕒 {time_str}\n📊 {category}{pdf_html}"

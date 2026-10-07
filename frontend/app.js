@@ -8,7 +8,21 @@ let allItems = [];
 const notifySound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 notifySound.volume = 0.5;
 
-// ── Normalize NSE / BSE / IPO / Listing to a single display format ─────────
+// ── Time Formatting Helper ──────────────────────────────────────────────────
+function formatTime12Hour(timeStr) {
+    if (!timeStr || !timeStr.includes(':')) return timeStr;
+    const parts = timeStr.split(':');
+    let hours = parseInt(parts[0], 10);
+    const mins = parts[1];
+    const secs = parts[2] ? ':' + parts[2] : '';
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const padHours = hours < 10 ? '0' + hours : hours;
+    return `${padHours}:${mins}${secs} ${ampm}`;
+}
+
+// ── Normalize NSE / BSE to a single display format ─────────
 function normalize(item) {
     const src = item.source || '';
     
@@ -18,12 +32,13 @@ function normalize(item) {
         if (!pdf && item.ATTACHMENTNAME) {
             pdf = `https://www.bseindia.com/xml-data/corpfiling/AttachLive/${item.ATTACHMENTNAME}`;
         }
+        let parsedTime = t.includes('T') ? t.split('T')[1].split('.')[0] : t;
         return {
             source:      'BSE',
             name:        item.SLONGNAME  || item.COMPANY_NAME || item.SLNAME || '-',
             symbol:      item.SCRIP_NAME || String(item.SCRIP_CD || '-'),
             headline:    item.HEADLINE   || item.SUBCATNAME || '-',
-            time:        t.includes('T') ? t.split('T')[1].split('.')[0] : t,
+            time:        formatTime12Hour(parsedTime),
             category:    item.CATEGORYNAME || item.SUBCATNAME || '-',
             pdf_link:    pdf,
         };
@@ -35,12 +50,13 @@ function normalize(item) {
         if (!pdf && item.attchmntFile) {
             pdf = `https://nsearchives.nseindia.com/corporate/${item.attchmntFile}`;
         }
+        let parsedTime = t.includes(' ') ? t.split(' ')[1] : t;
         return {
             source:      'NSE',
             name:        item.sm_name  || item.companyName || '-',
             symbol:      item.symbol   || '-',
             headline:    item.desc     || item.headline || '-',
-            time:        t.includes(' ') ? t.split(' ')[1] : t,
+            time:        formatTime12Hour(parsedTime),
             category:    item.attchmntText || '-',
             pdf_link:    pdf,
         };
